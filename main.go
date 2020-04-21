@@ -57,10 +57,23 @@ func shuffleArray(a []string) []string {
 	return a
 }
 
+func findNickNames(s *discordgo.Session, guildID string, memberIDs []string) ([]string, error) {
+
+	var nickNames []string
+	g, _ := s.Guild(guildID)
+	for _, onlineMem := range memberIDs {
+		for _, gmem := range g.Members {
+			if onlineMem == gmem.User.ID {
+				nickNames = append(nickNames, gmem.Nick)
+				break
+			}
+		}
+	}
+	return nickNames, nil
+}
+
 func main() {
 	discordToken, exists := os.LookupEnv("DISCORD_TOKEN")
-
-	fmt.Println("Got token: ", discordToken)
 
 	if !exists {
 		panic(fmt.Errorf("Could'nt read discord token"))
@@ -104,20 +117,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		oms, _ := findOnlineMembers(s, vs.GuildID)
 		voiceChannelMembers, _ := findSharedVoiceChannelmembers(s, oms, vs.ChannelID)
 		voiceChannelMembersShuffled := shuffleArray(voiceChannelMembers)
+		shuffledNickNames, _ := findNickNames(s, vs.GuildID, voiceChannelMembersShuffled)
 
 		var sb1 strings.Builder
 		var sb2 strings.Builder
 		sb1.WriteString("**Team 1:**")
 		sb2.WriteString("**Team 2:**")
 
-		for i, id := range voiceChannelMembersShuffled {
-			user, _ := s.User(id)
+		for i, nickName := range shuffledNickNames {
 			if i%2 == 0 {
 				sb1.WriteString("\n\t")
-				sb1.WriteString(user.Username)
+				sb1.WriteString(nickName)
 			} else {
 				sb2.WriteString("\n\t")
-				sb2.WriteString(user.Username)
+				sb2.WriteString(nickName)
 			}
 		}
 		s.ChannelMessageSend(m.ChannelID, sb1.String())
