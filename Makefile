@@ -1,4 +1,4 @@
 build:
-	docker build . -t go-dock
+	docker build . -t team-maker-bot
 run:
-	docker run -p 3000:3000 go-dock
+	docker run  -e DISCORD_TOKEN=<token> team-maker-bot

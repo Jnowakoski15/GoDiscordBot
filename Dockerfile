@@ -27,7 +27,7 @@ WORKDIR /dist
 RUN cp /build/main .
 
 # Build a small image
-FROM scratch
+FROM golang:alpine
 
 COPY --from=builder /dist/main /
 
