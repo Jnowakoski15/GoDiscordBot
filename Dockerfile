@@ -4,7 +4,8 @@ FROM golang:alpine AS builder
 ENV GO111MODULE=on \
     CGO_ENABLED=0 \
     GOOS=linux \
-    GOARCH=amd64
+    GOARCH=arm \
+    GOARM=7
 
 # Move to working directory /build
 WORKDIR /build
@@ -27,7 +28,7 @@ WORKDIR /dist
 RUN cp /build/main .
 
 # Build a small image
-FROM golang:alpine
+FROM arm32v7/golang:alpine
 
 COPY --from=builder /dist/main /
 
