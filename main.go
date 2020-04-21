@@ -64,7 +64,12 @@ func findNickNames(s *discordgo.Session, guildID string, memberIDs []string) ([]
 	for _, onlineMem := range memberIDs {
 		for _, gmem := range g.Members {
 			if onlineMem == gmem.User.ID {
-				nickNames = append(nickNames, gmem.Nick)
+				nick := gmem.Nick
+				if nick == "" {
+					user, _ := s.User(onlineMem)
+					nick = user.Username
+				}
+				nickNames = append(nickNames, nick)
 				break
 			}
 		}
