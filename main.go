@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -80,7 +81,6 @@ func main() {
 		fmt.Println("error opening connection,", err)
 		return
 	}
-
 	// Wait here until CTRL-C or other term signal is received.
 	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
@@ -95,46 +95,32 @@ func main() {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-
 	// Ignore all messages created by the bot itself
-	// This isn't required in this specific example but it's a good practice.
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-
-	fmt.Println(m.Content)
-
-	// If the message is "ping" reply with "Pong!"
 	if m.Content == "!mkteam" {
-
 		vs, _ := findUserVoiceState(s, m.Author.ID)
 		oms, _ := findOnlineMembers(s, vs.GuildID)
 		voiceChannelMembers, _ := findSharedVoiceChannelmembers(s, oms, vs.ChannelID)
-
 		voiceChannelMembersShuffled := shuffleArray(voiceChannelMembers)
 
-		
-		for _, id := range voiceChannelMembersShuffled {
-			user, _ := s.User(id)
-			s.ChannelMessageSend(m.ChannelID, user.Username)
-		}
+		var sb1 strings.Builder
+		var sb2 strings.Builder
+		sb1.WriteString("**Team 1:**")
+		sb2.WriteString("**Team 2:**")
 
-		fmt.Println("Voice Channel: ", vs.ChannelID)
-		ch, _ := s.Channel(vs.ChannelID)
-		fmt.Println("Channel: ", ch.Name)
-		fmt.Println("REcepipents: ", ch.Recipients)
-		for _, recip := range ch.Recipients {
-			fmt.Println(recip.Username)
-			_, err := s.ChannelMessageSend(m.ChannelID, recip.Username)
-			if err != nil {
-				fmt.Println(err)
+		for i, id := range voiceChannelMembersShuffled {
+			user, _ := s.User(id)
+			if i%2 == 0 {
+				sb1.WriteString("\n\t")
+				sb1.WriteString(user.Username)
+			} else {
+				sb2.WriteString("\n\t")
+				sb2.WriteString(user.Username)
 			}
 		}
-
-	}
-
-	// If the message is "pong" reply with "Ping!"
-	if m.Content == "pong" {
-		s.ChannelMessageSend(m.ChannelID, "Ping!")
+		s.ChannelMessageSend(m.ChannelID, sb1.String())
+		s.ChannelMessageSend(m.ChannelID, sb2.String())
 	}
 }
