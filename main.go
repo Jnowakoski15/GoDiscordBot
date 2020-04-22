@@ -33,6 +33,11 @@ func findOnlineMembers(s *discordgo.Session, guildID string) ([]string, error) {
 			onlineMem = append(onlineMem, id)
 		}
 	}
+
+	if len(onlineMem) == 0 {
+		return nil, errors.New("No Members found online")
+	}
+
 	return onlineMem, nil
 }
 
@@ -119,7 +124,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	if m.Content == "!mkteam" {
 		vs, _ := findUserVoiceState(s, m.Author.ID)
-		oms, _ := findOnlineMembers(s, vs.GuildID)
+		oms, err := findOnlineMembers(s, vs.GuildID)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, err.Error())
+			return
+		}
 		voiceChannelMembers, _ := findSharedVoiceChannelmembers(s, oms, vs.ChannelID)
 		voiceChannelMembersShuffled := shuffleArray(voiceChannelMembers)
 		shuffledNickNames, _ := findNickNames(s, vs.GuildID, voiceChannelMembersShuffled)

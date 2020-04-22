@@ -1,36 +1,58 @@
 FROM golang:alpine AS builder
 
+# Install git + SSL ca certificates.
+# Git is required for fetching the dependencies.
+# Ca-certificates is required to call HTTPS endpoints.
+RUN apk update && apk add --no-cache git ca-certificates && update-ca-certificates
+
 # Set necessary environmet variables needed for our image
+# Create appuser
 ENV GO111MODULE=on \
     CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=arm \
-    GOARM=7
+    GOARM=7 \
+    USER=appuser \
+    UID=10001
 
-# Move to working directory /build
 WORKDIR /build
 
-# Copy and download dependency using go mod
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
+# See https://stackoverflow.com/a/55757473/12429735RUN 
+RUN adduser \    
+    --disabled-password \    
+    --gecos "" \    
+    --home "/nonexistent" \    
+    --shell "/sbin/nologin" \    
+    --no-create-home \    
+    --uid "${UID}" \    
+    "${USER}"
 
-# Copy the code into the container
+
 COPY . .
+
+# Using go mod with go 1.11
+RUN go mod download
+RUN go mod verify
 
 # Build the application
 RUN go build -o main .
 
-# Move to /dist directory as the place for resulting binary folder
 WORKDIR /dist
 
 # Copy binary from build to main folder
 RUN cp /build/main .
 
 # Build a small image
-FROM arm32v7/golang:alpine
+FROM scratch
 
+# Import from builder.
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
 COPY --from=builder /dist/main /
+
+# Use an unprivileged user.
+USER appuser:appuser 
 
 # Command to run
 ENTRYPOINT ["/main"]
