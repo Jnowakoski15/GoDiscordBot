@@ -78,12 +78,39 @@ func findNickNames(s *discordgo.Session, guildID string, memberIDs []string) ([]
 	return nickNames, nil
 }
 
+func createEmbedOutput(team1 string, team2 string) *discordgo.MessageEmbed {
+
+	return &discordgo.MessageEmbed{
+		Author: &discordgo.MessageEmbedAuthor{},
+		Color:  0x000000, // Black
+		Fields: []*discordgo.MessageEmbedField{
+			&discordgo.MessageEmbedField{
+				Name:   "Team 1:",
+				Value:  team1,
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   "Team 2:",
+				Value:  team2,
+				Inline: true,
+			},
+		},
+		Timestamp: time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+		Title:     "Team Selection",
+	}
+}
+
 // MessageCreate This function will be called (due to AddHandler above) every time a new message is created on any channel that the autenticated bot has access to.
 func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
+
+	if m.Content == "!mktest" {
+		s.ChannelMessageSend(m.ChannelID, "Nothing currently in test")
+	}
+
 	if m.Content == "!mkteam" {
 		vs, _ := findUserVoiceState(s, m.Author.ID)
 		oms, err := findOnlineMembers(s, vs.GuildID)
@@ -97,19 +124,24 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		var sb1 strings.Builder
 		var sb2 strings.Builder
-		sb1.WriteString("**Team 1:**")
-		sb2.WriteString("**Team 2:**")
 
 		for i, nickName := range shuffledNickNames {
 			if i%2 == 0 {
-				sb1.WriteString("\n\t")
 				sb1.WriteString(nickName)
+				sb1.WriteString("\n")
 			} else {
-				sb2.WriteString("\n\t")
 				sb2.WriteString(nickName)
+				sb2.WriteString("\n")
 			}
 		}
-		s.ChannelMessageSend(m.ChannelID, sb1.String())
-		s.ChannelMessageSend(m.ChannelID, sb2.String())
+		if sb1.String() == "" {
+			sb1.WriteString("Empty")
+		}
+
+		if sb2.String() == "" {
+			sb2.WriteString("Empty")
+		}
+
+		s.ChannelMessageSendEmbed(m.ChannelID, createEmbedOutput(sb1.String(), sb2.String()))
 	}
 }
